@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון מחיר כיתות</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label, input, select, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        input, select, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result, .warning {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border: 1px solid #b6d4fe;
+            border-radius: 4px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffecb5;
+        }
+        #classData {
+            margin-top: 20px;
+        }
+        .class-entry {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .class-entry.estimate {
+            background-color: #fff3cd;
+        }
+        .class-entry button {
+            width: auto;
+            padding: 5px 10px;
+            background-color: #f44336;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .input-box {
+            width: 45%;
+        }
+        .input-box input {
+            width: 90%;
+        }
+        .separator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .vertical-line {
+            width: 1px;
+            height: 30px;
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>מחשבון מחיר כיתות</h1>
+        <div class="input-group">
+            <label for="gradeLevel">כיתה:</label>
+            <select id="gradeLevel" required>
+                <option value="א">א</option>
+                <option value="ב">ב</option>
+                <option value="ג">ג</option>
+                <option value="ד">ד</option>
+                <option value="ה">ה</option>
+                <option value="ו">ו</option>
+                <option value="ז">ז</option>
+                <option value="ח">ח</option>
+                <option value="ט">ט</option>
+            </select>
+            <div class="input-container">
+                <div class="input-box">
+                    <label for="studentsCount">מספר תלמידים:</label>
+                    <input type="number" id="studentsCount" min="1">
+                </div>
+                <div class="separator">
+                    <div class="vertical-line"></div>
+                    <span>או</span>
+                    <div class="vertical-line"></div>
+                </div>
+                <div class="input-box">
+                    <label for="classesCount">מספר כיתות:</label>
+                    <input type="number" id="classesCount" min="1">
+                </div>
+            </div>
+            <button id="addClass">הוסף כיתה</button>
+        </div>
+        <div id="classData"></div>
+        <button id="calculateBtn">חשב מחיר</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let classesData = [];
+        const hebrewToNumber = {'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9};
+
+        const studentsCountInput = document.getElementById('studentsCount');
+        const classesCountInput = document.getElementById('classesCount');
+
+        studentsCountInput.addEventListener('input', function() {
+            if (this.value) {
+                classesCountInput.disabled = true;
+            } else {
+                classesCountInput.disabled = false;
+            }
+        });
+
+        classesCountInput.addEventListener('input', function() {
+            if (this.value) {
+                studentsCountInput.disabled = true;
+            } else {
+                studentsCountInput.disabled = false;
+            }
+        });
+
+        document.getElementById('addClass').addEventListener('click', function() {
+            const gradeLevelSelect = document.getElementById('gradeLevel');
+            const gradeLevel = gradeLevelSelect.value;
+            let count, countType;
+
+            if (studentsCountInput.value) {
+                count = parseInt(studentsCountInput.value);
+                countType = 'students';
+            } else if (classesCountInput.value) {
+                count = parseInt(classesCountInput.value);
+                countType = 'classes';
+            } else {
+                alert('אנא הזן מספר תלמידים או מספר כיתות.');
+                return;
+            }
+            
+            if (count >= 1) {
+                classesData.push({ gradeLevel, countType, count });
+                updateClassDataDisplay();
+                studentsCountInput.value = '';
+                classesCountInput.value = '';
+                studentsCountInput.disabled = false;
+                classesCountInput.disabled = false;
+            } else {
+                alert('אנא הזן מספר חוקי (לפחות 1).');
+            }
+        });
+
+        document.getElementById('calculateBtn').addEventListener('click', calculateTotalPrice);
+
+        function updateClassDataDisplay() {
+            const classDataDiv = document.getElementById('classData');
+            classDataDiv.innerHTML = '';
+            classesData.forEach((classInfo, index) => {
+                const classEntry = document.createElement('div');
+                classEntry.className = 'class-entry';
+                if (classInfo.countType === 'classes') {
+                    classEntry.classList.add('estimate');
+                }
+                classEntry.innerHTML = `
+                    <span>כיתה ${classInfo.gradeLevel}, ${classInfo.count} ${classInfo.countType === 'students' ? 'תלמידים' : 'כיתות'}</span>
+                    <button onclick="removeClass(${index})">הסר</button>
+                `;
+                classDataDiv.appendChild(classEntry);
+            });
+        }
+
+        function removeClass(index) {
+            classesData.splice(index, 1);
+            updateClassDataDisplay();
+        }
+
+        function calculateTotalPrice() {
+            let product1Classes = 0;
+            let product2Classes = 0;
+            let product3Classes = 0;
+            let hasEstimatedClasses = false;
+            let hasAboveGradeD = false;
+            let classPrices = [];
+
+            classesData.forEach(({ gradeLevel, countType, count }) => {
+                const grade = hebrewToNumber[gradeLevel];
+                if (countType === 'classes') {
+                    hasEstimatedClasses = true;
+                }
+                const classCount = countType === 'classes' ? count : Math.ceil(count / 30);
+                if (grade >= 1 && grade <= 3) {
+                    product1Classes += classCount;
+                    classPrices.push(...Array(classCount).fill(400));
+                } else if (grade >= 4 && grade <= 6) {
+                    product2Classes += classCount;
+                    classPrices.push(...Array(classCount).fill(350));
+                    hasAboveGradeD = true;
+                } else if (grade >= 7 && grade <= 9) {
+                    product3Classes += classCount;
+                    classPrices.push(...Array(classCount).fill(400));
+                    hasAboveGradeD = true;
+                }
+            });
+
+            const product1Price = product1Classes * 400;
+            const product2Price = product2Classes * 350;
+            const product3Price = product3Classes * 400;
+
+            let totalPrice = product1Price + product2Price + product3Price;
+            const totalClasses = product1Classes + product2Classes + product3Classes;
+
+            if (totalClasses > 10) {
+                classPrices.sort((a, b) => a - b);
+                const discountClasses = classPrices.slice(10);
+                const discount = discountClasses.reduce((sum, price) => sum + price * 0.1, 0);
+                totalPrice -= discount;
+            }
+
+            const result = {
+                totalPrice: Math.round(totalPrice),
+                totalClasses: totalClasses,
+                product1Classes: product1Classes,
+                product2Classes: product2Classes,
+                product3Classes: product3Classes,
+                hasEstimatedClasses: hasEstimatedClasses,
+                hasAboveGradeD: hasAboveGradeD
+            };
+
+            displayResult(result);
+        }
+
+        function displayResult(result) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <h2>תוצאות:</h2>
+                <p>מחיר כולל: ₪${result.totalPrice}</p>
+                <p>מספר כיתות כולל: ${result.totalClasses}</p>
+                <p>כיתות מוצר 1 (כיתות א-ג): ${result.product1Classes}</p>
+                <p>כיתות מוצר 2 (כיתות ד-ו): ${result.product2Classes}</p>
+                <p>כיתות מוצר 3 (כיתות ז-ט): ${result.product3Classes}</p>
+            `;
+
+            if (result.hasEstimatedClasses) {
+                resultDiv.innerHTML += `
+                    <div class="warning">
+                        <p>שימו לב: החישוב הינו הערכה בלבד. לחישוב מדויק הזינו מספר תלמידים.</p>
+                    </div>
+                `;
+            }
+
+            if (result.hasAboveGradeD) {
+                resultDiv.innerHTML += `
+                    <div class="warning">
+                        <p>תוספת הדרכה לכיתות ד ומעלה למעוניינים - 200 ש"ח לכיתה, מינימום הזמנת הדרכה 1200 ש"ח.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
